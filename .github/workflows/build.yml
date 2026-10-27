@@ -34,6 +34,22 @@ jobs:
           flutter create . --platforms=android,ios --project-name kidquest --org com.kidquest
           rm -rf test   # drop Flutter's sample counter test; it does not match this app
 
+      - name: Raise Android compileSdk (plugins need 35/36)
+        run: |
+          python3 - << 'PY'
+          import re, pathlib
+          for name in ("android/app/build.gradle.kts", "android/app/build.gradle"):
+              f = pathlib.Path(name)
+              if not f.exists():
+                  continue
+              t = f.read_text()
+              t = re.sub(r"compileSdk\s*=?\s*flutter\.compileSdkVersion", "compileSdk = 36" if name.endswith(".kts") else "compileSdk 36", t)
+              t = re.sub(r"compileSdkVersion\s*=?\s*flutter\.compileSdkVersion", "compileSdkVersion 36", t) if not name.endswith(".kts") else t
+              f.write_text(t)
+              print("patched", name)
+              print([l for l in t.splitlines() if "compileSdk" in l])
+          PY
+
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter build apk --release
