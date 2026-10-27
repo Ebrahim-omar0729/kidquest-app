@@ -52,7 +52,20 @@ jobs:
 
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - run: flutter build apk --release
+      - name: Build APK
+        run: |
+          set +e
+          flutter build apk --release 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" != "0" ]; then
+            {
+              echo "## Build failed - key error lines"
+              echo '```'
+              grep -n -B2 -A18 -E "What went wrong|FAILURE:|Error:|error:" build.log | head -80
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit $code
 
       - name: Name the APK
         run: cp build/app/outputs/flutter-apk/app-release.apk KidQuest-${{ github.run_number }}.apk
